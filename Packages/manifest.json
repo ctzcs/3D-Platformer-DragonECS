@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "com.dcfa_pixels.dragonecs": "https://github.com/DCFApixels/DragonECS.git",
+    "com.dcfa_pixels.dragonecs-unity": "https://github.com/DCFApixels/DragonECS-Unity.git",
     "com.leopotam.globals": "https://github.com/Leopotam/globals.git",
     "com.unity.ide.rider": "3.0.7",
     "com.unity.ide.visualstudio": "2.0.11",
