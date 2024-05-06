@@ -1,42 +1,36 @@
-﻿using Leopotam.EcsLite;
+﻿using DCFApixels.DragonECS;
 using LeopotamGroup.Globals;
-using System.Collections;
-using System.Collections.Generic;
-using Leopotam.EcsLite.ExtendedSystems;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Platformer
 {
-    public class Startup : MonoBehaviour
+    public class EcsRoot : MonoBehaviour
     {
-        private EcsWorld ecsWorld;
-        private IEcsSystems initSystems;
-        private IEcsSystems updateSystems;
-        private IEcsSystems fixedUpdateSystems;
         [SerializeField] private ConfigurationSO configuration;
         [SerializeField] private Text coinCounter;
         [SerializeField] private GameObject gameOverPanel;
         [SerializeField] private GameObject playerWonPanel;
 
+        private EcsDefaultWorld _world;
+        private EcsPipeline _pipeline;
+
         private void Start()
         {
-            ecsWorld = new EcsWorld();
-            var gameData = new GameData();
+            _world = new EcsDefaultWorld();
 
+            var gameData = new GameData();
             gameData.configuration = configuration;
             gameData.coinCounter = coinCounter;
             gameData.gameOverPanel = gameOverPanel;
             gameData.playerWonPanel = playerWonPanel;
             gameData.sceneService = Service<SceneService>.Get(true);
 
-            initSystems = new EcsSystems(ecsWorld, gameData)
+            _pipeline = EcsPipeline.New()
+                //init only systems
                 .Add(new PlayerInitSystem())
-                .Add(new DangerousInitSystem());
-
-            initSystems.Init();
-
-            updateSystems = new EcsSystems(ecsWorld, gameData)
+                .Add(new DangerousInitSystem())
+                //update systems
                 .Add(new PlayerInputSystem())
                 .Add(new DangerousRunSystem())
                 .Add(new CoinHitSystem())
@@ -45,34 +39,32 @@ namespace Platformer
                 .Add(new WinHitSystem())
                 .Add(new SpeedBuffSystem())
                 .Add(new JumpBuffSystem())
-                .DelHere<HitComponent>();
-
-            updateSystems.Init();
-
-            fixedUpdateSystems = new EcsSystems(ecsWorld, gameData)
+                .AutoDel<Hit>()
+                //fixed update systems
                 .Add(new PlayerMoveSystem())
                 .Add(new CameraFollowSystem())
-                .Add(new PlayerJumpSystem());
-
-            fixedUpdateSystems.Init();
+                .Add(new PlayerJumpSystem())
+                //di
+                .Inject(_world, gameData)
+                //unity integrations debugger
+                .AddUnityDebug(_world)
+                .BuildAndInit();
         }
 
         private void Update()
         {
-            updateSystems.Run();
+            _pipeline.Run();
         }
 
         private void FixedUpdate()
         {
-            fixedUpdateSystems.Run();
+            _pipeline.FixedRun();
         }
 
         private void OnDestroy()
         {
-            initSystems.Destroy();
-            updateSystems.Destroy();
-            fixedUpdateSystems.Destroy();
-            ecsWorld.Destroy();
+            _pipeline.Destroy();
+            _world.Destroy();
         }
     }
 }

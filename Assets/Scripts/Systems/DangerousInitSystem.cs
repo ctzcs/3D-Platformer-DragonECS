@@ -1,20 +1,19 @@
-﻿using Leopotam.EcsLite;
-using System.Collections;
-using System.Collections.Generic;
+﻿using DCFApixels.DragonECS;
 using UnityEngine;
 
 namespace Platformer
 {
-    public class DangerousInitSystem : IEcsInitSystem
+    public class DangerousInitSystem : IEcsInit, IEcsInject<EcsDefaultWorld>
     {
-        public void Init(IEcsSystems ecsSystems)
+        public void Inject(EcsDefaultWorld obj) => _world = obj;
+        EcsDefaultWorld _world;
+        public void Init()
         {
-            var ecsWorld = ecsSystems.GetWorld();
-            var dangerousPool = ecsWorld.GetPool<DangerousComponent>();
-            
+            var dangerousPool = _world.GetPool<Dangerous>();
+
             foreach (var i in GameObject.FindGameObjectsWithTag(Constants.Tags.DangerousTag))
             {
-                var dangerousEntity = ecsWorld.NewEntity();
+                var dangerousEntity = _world.NewEntity();
 
                 dangerousPool.Add(dangerousEntity);
                 ref var dangerousComponent = ref dangerousPool.Get(dangerousEntity);

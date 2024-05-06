@@ -1,46 +1,51 @@
-using Leopotam.EcsLite;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using DCFApixels.DragonECS;
 
 namespace Platformer
 {
-    public class BuffHitSystem : IEcsRunSystem
+    public class BuffHitSystem : IEcsRun, IEcsInject<EcsDefaultWorld>, IEcsInject<GameData>
     {
-        public void Run(IEcsSystems ecsSystems)
+        class HitAspect : EcsAspect
         {
-            var gameData = ecsSystems.GetShared<GameData>();
-            var hitFilter = ecsSystems.GetWorld().Filter<HitComponent>().End();
-            var hitPool = ecsSystems.GetWorld().GetPool<HitComponent>();
-            var playerFilter = ecsSystems.GetWorld().Filter<PlayerComponent>().End();
-            var playerPool = ecsSystems.GetWorld().GetPool<PlayerComponent>();
-            var jumpPool = ecsSystems.GetWorld().GetPool<JumpBuffComponent>();
-            var speedPool = ecsSystems.GetWorld().GetPool<SpeedBuffComponent>();
+            public EcsPool<Hit> hits = Inc;
+        }
+        class PlayerAspect : EcsAspect
+        {
+            public EcsPool<Player> players = Inc;
+            public EcsPool<JumpBuff> jumpBuffs = Opt;
+            public EcsPool<SpeedBuff> speedBuffs = Opt;
+        }
 
-            foreach (var hitEntity in hitFilter)
+        public void Inject(EcsDefaultWorld obj) => _world = obj;
+        EcsDefaultWorld _world;
+        public void Inject(GameData obj) => _gameData = obj;
+        GameData _gameData;
+
+
+        public void Run()
+        {
+            var playerEs = _world.Where(out PlayerAspect playerAspect);
+            foreach (var hitE in _world.Where(out HitAspect hitAspect))
             {
-                ref var hitComponent = ref hitPool.Get(hitEntity);
+                ref var hitComponent = ref hitAspect.hits.Get(hitE);
 
-                foreach (var playerEntity in playerFilter)
+                foreach (var playerE in playerEs)
                 {
-                    ref var playerComponent = ref playerPool.Get(playerEntity);
+                    ref var playerComponent = ref playerAspect.players.Get(playerE);
 
                     if (hitComponent.other.CompareTag(Constants.Tags.SpeedBuffTag))
                     {
                         hitComponent.other.gameObject.SetActive(false);
                         playerComponent.playerSpeed *= 2f;
-                        speedPool.Add(playerEntity);
-                        ref var speedBuffComponent = ref speedPool.Get(playerEntity);
-                        speedBuffComponent.timer = gameData.configuration.speedBuffDuration;
+                        ref var speedBuffComponent = ref playerAspect.speedBuffs.TryAddOrGet(playerE);
+                        speedBuffComponent.timer = _gameData.configuration.speedBuffDuration;
                     }
 
                     if (hitComponent.other.CompareTag(Constants.Tags.JumpBuffTag))
                     {
                         hitComponent.other.gameObject.SetActive(false);
                         playerComponent.playerJumpForce *= 2f;
-                        jumpPool.Add(playerEntity);
-                        ref var jumpBuffComponent = ref jumpPool.Get(playerEntity);
-                        jumpBuffComponent.timer = gameData.configuration.jumpBuffDuration;
+                        ref var jumpBuffComponent = ref playerAspect.jumpBuffs.TryAddOrGet(playerE);
+                        jumpBuffComponent.timer = _gameData.configuration.jumpBuffDuration;
                     }
                 }
 

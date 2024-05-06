@@ -1,36 +1,39 @@
-﻿using Leopotam.EcsLite;
-using System.Collections;
-using System.Collections.Generic;
+﻿using DCFApixels.DragonECS;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-
 
 namespace Platformer
 {
-    public class PlayerInputSystem : IEcsRunSystem
+    public class PlayerInputSystem : IEcsRun, IEcsInject<EcsDefaultWorld>, IEcsInject<GameData>
     {
-        public void Run(IEcsSystems ecsSystems)
+        class Aspect : EcsAspect
         {
-            var filter = ecsSystems.GetWorld().Filter<PlayerInputComponent>().End();
-            var playerInputPool = ecsSystems.GetWorld().GetPool<PlayerInputComponent>();
-            var tryJumpPool = ecsSystems.GetWorld().GetPool<TryJump>();
-            var gameData = ecsSystems.GetShared<GameData>();
+            public EcsPool<PlayerInput> playerInputs = Inc;
+            public EcsTagPool<TryJump> tryJumps = Opt;
+        }
 
-            foreach (var entity in filter)
+        public void Inject(EcsDefaultWorld obj) => _world = obj;
+        EcsDefaultWorld _world;
+        public void Inject(GameData obj) => _gameData = obj;
+        GameData _gameData;
+
+        public void Run()
+        {
+
+            foreach (var entity in _world.Where(out Aspect aspect))
             {
-                ref var playerInputComponent = ref playerInputPool.Get(entity);
+                ref var playerInputComponent = ref aspect.playerInputs.Get(entity);
 
                 playerInputComponent.moveInput = new Vector3(Input.GetAxisRaw("Horizontal"), 0, 0);
 
                 if (Input.GetKeyDown(KeyCode.Space))
                 {
-                    var tryJump = ecsSystems.GetWorld().NewEntity();
-                    tryJumpPool.Add(tryJump);
+                    var tryJump = _world.NewEntity();
+                    aspect.tryJumps.Add(tryJump);
                 }
 
                 if (Input.GetKeyDown(KeyCode.R))
                 {
-                    gameData.sceneService.ReloadScene();
+                    _gameData.sceneService.ReloadScene();
                 }
             }
         }

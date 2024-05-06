@@ -1,7 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using DCFApixels.DragonECS;
 
-public struct TryJump
+namespace Platformer
 {
+    [System.Serializable]
+    public struct TryJump : IEcsTagComponent { }
 }
+

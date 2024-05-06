@@ -1,26 +1,29 @@
-﻿using Leopotam.EcsLite;
-using System.Collections;
-using System.Collections.Generic;
+﻿using DCFApixels.DragonECS;
 using UnityEngine;
 
 namespace Platformer
 {
-    public class PlayerMoveSystem : IEcsRunSystem
+    public class PlayerMoveSystem : IEcsFixedRunProcess, IEcsInject<EcsDefaultWorld>
     {
-        public void Run(IEcsSystems ecsSystems)
+        class Aspect : EcsAspect
         {
-            var filter = ecsSystems.GetWorld().Filter<PlayerComponent>().Inc<PlayerInputComponent>().End();
-            var playerPool = ecsSystems.GetWorld().GetPool<PlayerComponent>();
-            var playerInputPool = ecsSystems.GetWorld().GetPool<PlayerInputComponent>();
+            public EcsPool<Player> players = Inc;
+            public EcsPool<PlayerInput> playerInputs = Inc;
+        }
 
-            foreach (var entity in filter)
+        public void Inject(EcsDefaultWorld obj) => _world = obj;
+        EcsDefaultWorld _world;
+
+        public void FixedRun()
+        {
+            foreach (var entity in _world.Where(out Aspect aspect))
             {
-                ref var playerComponent = ref playerPool.Get(entity);
-                ref var playerInputComponent = ref playerInputPool.Get(entity);
+                ref var playerComponent = ref aspect.players.Get(entity);
+                ref var playerInputComponent = ref aspect.playerInputs.Get(entity);
 
                 playerComponent.playerRB.AddForce(playerInputComponent.moveInput * playerComponent.playerSpeed, ForceMode.Acceleration);
             }
-            
+
         }
     }
 }

@@ -1,33 +1,38 @@
-﻿using Leopotam.EcsLite;
-using System.Collections;
-using System.Collections.Generic;
+﻿using DCFApixels.DragonECS;
 using UnityEngine;
 
 namespace Platformer
 {
-    public class PlayerInitSystem : IEcsInitSystem
+    public class PlayerInitSystem : IEcsInit, IEcsInject<EcsDefaultWorld>, IEcsInject<GameData>
     {
-        public void Init(IEcsSystems ecsSystems)
+        class PlayerAspect : EcsAspect
         {
-            var ecsWorld = ecsSystems.GetWorld();
-            var gameData = ecsSystems.GetShared<GameData>();
+            public EcsPool<Player> players = Inc;
+        }
 
-            var playerEntity = ecsWorld.NewEntity();
+        public void Inject(EcsDefaultWorld obj) => _world = obj;
+        EcsDefaultWorld _world;
+        public void Inject(GameData obj) => _gameData = obj;
+        GameData _gameData;
 
-            var playerPool = ecsWorld.GetPool<PlayerComponent>();
+        public void Init()
+        {
+            var playerEntity = _world.NewEntity();
+
+            var playerPool = _world.GetPool<Player>();
             playerPool.Add(playerEntity);
             ref var playerComponent = ref playerPool.Get(playerEntity);
-            var playerInputPool = ecsWorld.GetPool<PlayerInputComponent>();
+            var playerInputPool = _world.GetPool<PlayerInput>();
             playerInputPool.Add(playerEntity);
             ref var playerInputComponent = ref playerInputPool.Get(playerEntity);
 
             var playerGO = GameObject.FindGameObjectWithTag("Player");
-            playerGO.GetComponentInChildren<GroundCheckerView>().groundedPool = ecsSystems.GetWorld().GetPool<GroundedComponent>();
+            playerGO.GetComponentInChildren<GroundCheckerView>().groundedPool = _world.GetPool<IsGrounded>();
             playerGO.GetComponentInChildren<GroundCheckerView>().playerEntity = playerEntity;
-            playerGO.GetComponentInChildren<CollisionCheckerView>().ecsWorld = ecsWorld;
-            playerComponent.playerSpeed = gameData.configuration.playerSpeed;
+            playerGO.GetComponentInChildren<CollisionCheckerView>().ecsWorld = _world;
+            playerComponent.playerSpeed = _gameData.configuration.playerSpeed;
             playerComponent.playerTransform = playerGO.transform;
-            playerComponent.playerJumpForce = gameData.configuration.playerJumpForce;
+            playerComponent.playerJumpForce = _gameData.configuration.playerJumpForce;
             playerComponent.playerCollider = playerGO.GetComponent<CapsuleCollider>();
             playerComponent.playerRB = playerGO.GetComponent<Rigidbody>();
         }

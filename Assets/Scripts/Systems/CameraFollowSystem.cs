@@ -1,49 +1,54 @@
-﻿using Leopotam.EcsLite;
-using System.Collections;
-using System.Collections.Generic;
+﻿using DCFApixels.DragonECS;
 using UnityEngine;
 
 namespace Platformer
 {
-    public class CameraFollowSystem : IEcsInitSystem, IEcsRunSystem
+    public class CameraFollowSystem : IEcsInit, IEcsFixedRunProcess, IEcsInject<EcsDefaultWorld>, IEcsInject<GameData>
     {
+        class CameraAspect : EcsAspect
+        {
+            public EcsPool<Camera> cameras = Inc;
+        }
+        class PlayerAspect : EcsAspect
+        {
+            public EcsPool<Player> players = Inc;
+        }
+
+        public void Inject(EcsDefaultWorld obj) => _world = obj;
+        EcsDefaultWorld _world;
+        public void Inject(GameData obj) => _gameData = obj;
+        GameData _gameData;
+
         private int cameraEntity;
 
-        public void Init(IEcsSystems ecsSystems)
+        public void Init()
         {
-            var gameData = ecsSystems.GetShared<GameData>();
+            var cameraEntity = _world.NewEntity();
+            var cameraAspect = _world.GetAspect<CameraAspect>();
+            ref var cameraComponent = ref cameraAspect.cameras.Add(cameraEntity);
 
-            var cameraEntity = ecsSystems.GetWorld().NewEntity();
-
-            var cameraPool = ecsSystems.GetWorld().GetPool<CameraComponent>();
-            cameraPool.Add(cameraEntity);
-            ref var cameraComponent = ref cameraPool.Get(cameraEntity);
-
-            cameraComponent.cameraTransform = Camera.main.transform;
-            cameraComponent.cameraSmoothness = gameData.configuration.cameraFollowSmoothness;
+            cameraComponent.cameraTransform = UnityEngine.Camera.main.transform;
+            cameraComponent.cameraSmoothness = _gameData.configuration.cameraFollowSmoothness;
             cameraComponent.curVelocity = Vector3.zero;
             cameraComponent.offset = new Vector3(0f, 1f, -9f);
 
             this.cameraEntity = cameraEntity;
         }
 
-        public void Run(IEcsSystems ecsSystems)
+        public void FixedRun()
         {
-            var filter = ecsSystems.GetWorld().Filter<PlayerComponent>().End();
-            var playerPool = ecsSystems.GetWorld().GetPool<PlayerComponent>();
-            var cameraPool = ecsSystems.GetWorld().GetPool<CameraComponent>();
+            var cameraAspect = _world.GetAspect<CameraAspect>();
+            ref var cameraComponent = ref cameraAspect.cameras.Get(cameraEntity);
 
-            ref var cameraComponent = ref cameraPool.Get(cameraEntity);
-
-            foreach(var entity in filter)
+            foreach (var entity in _world.Where(out PlayerAspect playerAspect))
             {
-                ref var playerComponent = ref playerPool.Get(entity);
+                ref var playerComponent = ref playerAspect.players.Get(entity);
 
                 Vector3 currentPosition = cameraComponent.cameraTransform.position;
                 Vector3 targetPoint = playerComponent.playerTransform.position + cameraComponent.offset;
 
                 cameraComponent.cameraTransform.position = Vector3.SmoothDamp(currentPosition, targetPoint, ref cameraComponent.curVelocity, cameraComponent.cameraSmoothness);
-            }    
+            }
         }
     }
 }

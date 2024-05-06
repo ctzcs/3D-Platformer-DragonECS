@@ -1,6 +1,4 @@
-﻿using Leopotam.EcsLite;
-using System.Collections;
-using System.Collections.Generic;
+﻿using DCFApixels.DragonECS;
 using UnityEngine;
 
 namespace Platformer
@@ -14,7 +12,7 @@ namespace Platformer
         {
             var hit = ecsWorld.NewEntity();
 
-            var hitPool = ecsWorld.GetPool<HitComponent>();
+            var hitPool = ecsWorld.GetPool<Hit>();
             hitPool.Add(hit);
             ref var hitComponent = ref hitPool.Get(hit);
 
@@ -27,11 +25,11 @@ namespace Platformer
             if (other.CompareTag(Constants.Tags.CoinTag) || other.CompareTag(Constants.Tags.BadCoinTag))
             {
                 // instantly destroy coin to avoid multiple OnTriggerEnter() calls.
-                other.gameObject.SetActive(false); 
+                other.gameObject.SetActive(false);
             }
             var hit = ecsWorld.NewEntity();
 
-            var hitPool = ecsWorld.GetPool<HitComponent>();
+            var hitPool = ecsWorld.GetPool<Hit>();
             hitPool.Add(hit);
             ref var hitComponent = ref hitPool.Get(hit);
 

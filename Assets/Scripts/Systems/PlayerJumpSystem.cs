@@ -1,25 +1,33 @@
-﻿using Leopotam.EcsLite;
-using System.Collections;
-using System.Collections.Generic;
+﻿using DCFApixels.DragonECS;
 using UnityEngine;
 
 
 namespace Platformer
 {
-    public class PlayerJumpSystem : IEcsRunSystem
+    public class PlayerJumpSystem : IEcsFixedRunProcess, IEcsInject<EcsDefaultWorld>
     {
-        public void Run(IEcsSystems ecsSystems)
+        class Aspect : EcsAspect
         {
-            var playerGroundedFilter = ecsSystems.GetWorld().Filter<PlayerComponent>().Inc<PlayerInputComponent>().Inc<GroundedComponent>().End();
-            var tryJumpFilter = ecsSystems.GetWorld().Filter<TryJump>().End();
-            var playerPool = ecsSystems.GetWorld().GetPool<PlayerComponent>();
+            public EcsPool<Player> players = Inc;
+            public EcsPool<PlayerInput> playerInputs = Inc;
+            public EcsTagPool<IsGrounded> isGroundeds = Inc;
+        }
+        class TryJumpAspect : EcsAspect
+        {
+            public EcsTagPool<TryJump> tryJumps = Inc;
+        }
 
-            foreach (var tryJumpEntity in tryJumpFilter)
+        public void Inject(EcsDefaultWorld obj) => _world = obj;
+        EcsDefaultWorld _world;
+
+        public void FixedRun()
+        {
+            foreach (var tryJumpEntity in _world.Where(out TryJumpAspect tryJumpAspect))
             {
-                ecsSystems.GetWorld().DelEntity(tryJumpEntity);
-                foreach (var playerEntity in playerGroundedFilter)
+                _world.DelEntity(tryJumpEntity);
+                foreach (var playerEntity in _world.Where(out Aspect aspect))
                 {
-                    ref var playerComponent = ref playerPool.Get(playerEntity);
+                    ref var playerComponent = ref aspect.players.Get(playerEntity);
 
                     playerComponent.playerRB.AddForce(Vector3.up * playerComponent.playerJumpForce, ForceMode.VelocityChange);
                 }

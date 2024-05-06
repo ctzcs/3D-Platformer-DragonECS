@@ -1,6 +1,4 @@
-﻿using Leopotam.EcsLite;
-using System.Collections;
-using System.Collections.Generic;
+﻿using DCFApixels.DragonECS;
 using UnityEngine;
 
 namespace Platformer
@@ -8,7 +6,7 @@ namespace Platformer
     public class GroundCheckerView : MonoBehaviour
     {
         // auto-injected fields.
-        public EcsPool<GroundedComponent> groundedPool;
+        public EcsTagPool<IsGrounded> groundedPool;
         public int playerEntity;
 
         private void OnTriggerStay(Collider other)

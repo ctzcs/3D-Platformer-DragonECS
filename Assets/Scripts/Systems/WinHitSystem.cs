@@ -1,33 +1,39 @@
-using Leopotam.EcsLite;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using DCFApixels.DragonECS;
 
 namespace Platformer
 {
-    public class WinHitSystem : IEcsRunSystem
+    public class WinHitSystem : IEcsRun, IEcsInject<EcsDefaultWorld>, IEcsInject<GameData>
     {
-        public void Run(IEcsSystems ecsSystems)
+        class HitAspect : EcsAspect
         {
-            var gameData = ecsSystems.GetShared<GameData>();
-            var hitFilter = ecsSystems.GetWorld().Filter<HitComponent>().End();
-            var hitPool = ecsSystems.GetWorld().GetPool<HitComponent>();
-            var playerFilter = ecsSystems.GetWorld().Filter<PlayerComponent>().End();
-            var playerPool = ecsSystems.GetWorld().GetPool<PlayerComponent>();
+            public EcsPool<Hit> hits = Inc;
+        }
+        class PlayerAspect : EcsAspect
+        {
+            public EcsPool<Player> players = Inc;
+        }
 
-            foreach (var hitEntity in hitFilter)
+        public void Inject(EcsDefaultWorld obj) => _world = obj;
+        EcsDefaultWorld _world;
+        public void Inject(GameData obj) => _gameData = obj;
+        GameData _gameData;
+
+        public void Run()
+        {
+            var playerEs = _world.Where(out PlayerAspect playerAspect);
+            foreach (var hitE in _world.Where(out HitAspect hitAspect))
             {
-                ref var hitComponent = ref hitPool.Get(hitEntity);
+                ref var hitComponent = ref hitAspect.hits.Get(hitE);
 
-                foreach (var playerEntity in playerFilter)
+                foreach (var playerE in playerEs)
                 {
-                    ref var playerComponent = ref playerPool.Get(playerEntity);
+                    ref var playerComponent = ref playerAspect.players.Get(playerE);
 
                     if (hitComponent.other.CompareTag(Constants.Tags.WinPointTag))
                     {
                         playerComponent.playerTransform.gameObject.SetActive(false);
-                        ecsSystems.GetWorld().DelEntity(playerEntity);
-                        gameData.playerWonPanel.SetActive(true);
+                        _world.DelEntity(playerE);
+                        _gameData.playerWonPanel.SetActive(true);
                     }
                 }
 

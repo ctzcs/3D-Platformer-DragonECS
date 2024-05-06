@@ -1,20 +1,23 @@
-﻿using Leopotam.EcsLite;
-using System.Collections;
-using System.Collections.Generic;
+﻿using DCFApixels.DragonECS;
 using UnityEngine;
 
 namespace Platformer
 {
-    public class DangerousRunSystem : IEcsRunSystem
+    public class DangerousRunSystem : IEcsRun, IEcsInject<EcsDefaultWorld>
     {
-        public void Run(IEcsSystems ecsSystems)
+        class Aspect : EcsAspect
         {
-            var filter = ecsSystems.GetWorld().Filter<DangerousComponent>().End();
-            var dangerousPool = ecsSystems.GetWorld().GetPool<DangerousComponent>();
+            public EcsPool<Dangerous> dangerouses = Inc;
+        }
 
-            foreach (var entity in filter)
+        public void Inject(EcsDefaultWorld obj) => _world = obj;
+        EcsDefaultWorld _world;
+
+        public void Run()
+        {
+            foreach (var entity in _world.Where(out Aspect aspect))
             {
-                ref var dangerousComponent = ref dangerousPool.Get(entity);
+                ref var dangerousComponent = ref aspect.dangerouses.Get(entity);
                 Vector3 pos1 = dangerousComponent.pointA;
                 Vector3 pos2 = dangerousComponent.pointB;
 
